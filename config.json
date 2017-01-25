@@ -1,0 +1,30 @@
+{
+	"server": {
+		"port": 3000
+	},
+	"rooms": [
+		{
+			"deviceId": "390020001747343337363432",
+			"roomId": "console"
+		},
+		{
+			"deviceId": "20002d001647343337363432",
+			"roomId": "api"
+		}
+	],
+	"roomDelayMs": 2000,
+	"logger": {
+		"name": "application.log",
+		"appendConsole": true,
+		"level": "debug"
+	},
+	"twilio": {
+		"fromNumber": "+14843348260",
+		"toNumber": "+14157994051",
+		"name": "LunchDisplay"
+	},
+	"cache": {
+		"storagePath": "cache.json",
+		"loopIntervalMs": 5000
+	}
+}

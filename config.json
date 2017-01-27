@@ -26,5 +26,6 @@
 	"cache": {
 		"storagePath": "cache.json",
 		"loopIntervalMs": 5000
-	}
+	},
+	"notifyServer": "http://a201c988.ngrok.io"
 }

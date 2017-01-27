@@ -1,20 +1,21 @@
 const Particle = require('particle-api-js');
 const logger = require('./logger');
 const particle = new Particle();
+const request = require('superagent');
 const credentials = require('../credentials.json');
+const config = require('../config.json');
 let cacher = require('./cacher');
 
 let token = null;
 
 module.exports.start = start;
 module.exports.setRoom = setRoom;
-module.exports.setFirstCall = setFirstCall;
-module.exports.setSecondCall = setSecondCall;
-module.exports.setDelay = setDelay;
+module.exports.setDuration = setDuration;
 module.exports.lightOn = lightOn;
 module.exports.lightOff = lightOff;
 module.exports.callRoom = callRoom;
 module.exports.devices = credentials.devices;
+module.exports.programDevice = programDevice;
 
 
 function start (cb) {
@@ -36,37 +37,27 @@ function start (cb) {
 }
 
 function setRoom (device, roomId) {
+	const oldRoom = getRoomId(device);
 	const arg = "room:" + roomId;
 	programDevice(device, arg);
+	let payload = {
+		newRoom: roomId
+	};
+	if (oldRoom !== roomId && oldRoom) {
+		payload.oldRoom = oldRoom
+	}
+	request
+		.post(config.notifyServer + '/display', payload)
+		.end();
 }
 
-function setFirstCall (device, duration) {
+function setDuration (device, duration) {
 	const d = parseFloat(duration);
 	if (isNaN(d)) {
 		return logger.warn("Invalid duration %s provided", duration);
 	}
 
-	const arg = "firstCall:" + d;
-	programDevice(device, arg);
-}
-
-function setSecondCall (device, duration) {
-	const d = parseFloat(duration);
-	if (isNaN(d)) {
-		return logger.warn("Invalid duration %s provided", duration);
-	}
-
-	const arg = "secondCall:" + d;
-	programDevice(device, arg);
-}
-
-function setDelay (device, duration) {
-	const d = parseFloat(duration);
-	if (isNaN(d)) {
-		return logger.warn("Invalid duration %s provided", duration);
-	}
-
-	const arg = "delay:" + d;
+	const arg = "duration:" + d;
 	programDevice(device, arg);
 }
 
@@ -150,12 +141,8 @@ function recoverySystem () {
 
 						if (command === "r") {
 							setRoom(id, value);
-						} else if (command === "f") {
-							setFirstCall(id, value/(60*1000));
-						} else if (command === "s") {
-							setSecondCall(id, value/(60*1000));
 						} else if (command === "d") {
-							setDelay(id, value/(60*1000));
+							setDuration(id, value/(60*1000));
 						}
 					});
 					programDevice(id, "rebootComplete:true");
@@ -164,21 +151,6 @@ function recoverySystem () {
 			}
 		});
 	});
-}
-
-function getDataByKey(metaData, key) {
-	let result = null;
-	metaData.forEach(data => {
-		const arr = data.split(':');
-		const command = arr[0];
-		const value = arr[1];
-
-		if (command == key) {
-			result = value;
-		}
-	});
-
-	return result;
 }
 
 function getUniqueDeviceId(deviceId) {
@@ -193,7 +165,7 @@ function getUniqueDeviceId(deviceId) {
 		if (!cacher.cache.hasOwnProperty(id)) continue;
 
 		const data = cacher.cache[id];
-		if (getDataByKey(data, 'r') === deviceId) {
+		if (cacher.getDataByKey(data, 'r') === deviceId) {
 			return id;
 		}
 	}
@@ -208,5 +180,5 @@ function getRoomId(id) {
 		return false;
 	}
 
-	return getDataByKey(cacher.cache[id], 'r');
+	return cacher.getDataByKey(cacher.cache[id], 'r');
 }
